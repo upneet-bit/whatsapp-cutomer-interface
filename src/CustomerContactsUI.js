@@ -62,18 +62,48 @@ const CustomerContactsUI = () => {
   //   setIsLoading(false);
   // };
 
+  function generateIdFromPhoneNumber(phoneNumber) {
+    // Remove non-digit characters from the phone number
+    const cleanNumber = phoneNumber.replace(/\D/g, '');
+  
+    // Simple hash function
+    let hash = 0;
+    for (let i = 0; i < cleanNumber.length; i++) {
+      const char = cleanNumber.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+  
+    // Convert hash to a string of alphanumeric characters
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let id = '';
+    let absoluteHash = Math.abs(hash);
+    for (let i = 0; i < 15; i++) { // Generate a 15-character ID
+      id += characters.charAt(absoluteHash % characters.length);
+      absoluteHash = Math.floor(absoluteHash / characters.length);
+    }
+  
+    return 'A' + id; // Ensure the ID starts with 'A'
+  }
+  
+  
+
   const fetchContacts = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get(`${API_URL}/whatsapp/contacts`);
-      const fetchedContacts = response.data.map(apiContact => ({
-        id: apiContact.id,
+      const waId = phoneNumber.slice(1);
+      const response = await axios.get(`${API_URL}/whatsapp/images/:${waId}`);
+      console.log(response);
+      const apiContact = response.data ;
+      const fetchedContacts = {
+        //id: apiContact.id,
+        id: generateIdFromPhoneNumber(waId),
         type: 'phone', // Assuming all contacts are phone type
         order: apiContact.order || `WA-${Math.floor(Math.random() * 1000000)}`,
         resolvedBy: apiContact.resolvedBy || `agent_${Math.floor(Math.random() * 100)}`,
         status: apiContact.status || (Math.random() > 0.5 ? 'Resolved' : 'Pending'),
         date: apiContact.date || new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }),
-        attachments: apiContact.attachmentUrls || [],
+        attachments: apiContact.urls || [],
         customerIssue: apiContact.customerIssue || 'Issue not specified',
         agentIssue: apiContact.agentIssue || 'Response not specified',
         timeline: apiContact.timeline || [
@@ -83,8 +113,8 @@ const CustomerContactsUI = () => {
             agent: 'system'
           }
         ]
-      }));
-      setContacts(prevContacts => [...fetchedContacts, ...prevContacts]);
+      };
+      setContacts(prevContacts => [fetchedContacts, ...prevContacts]);
     } catch (error) {
       console.error("Error fetching contacts:", error);
       // Optionally, you can show an error message to the user here
@@ -118,13 +148,18 @@ const CustomerContactsUI = () => {
     }
     setIsSending(true);
     try {
-      const response = await axios.post(`${API_URL}/send-notification`, {
-        whatsappNumber: phoneNumber
+      const response = await fetch(`${API_URL}/send-notification`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phoneNumber })
       });
-      console.log('Message sent:', response.data);
-      alert(`Notification sent to ${phoneNumber}`);
-      setPhoneNumber('');
-    } catch (error) {
+      if (response.ok) {
+          alert('Notification sent');
+      } else {
+          alert('Failed to send notification.');
+      }
+      //setPhoneNumber('');
+  } catch (error) {
       console.error('Error sending message:', error);
       alert('Failed to send notification. Please try again.');
     }
