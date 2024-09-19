@@ -101,7 +101,7 @@ const CustomerContactsUI = () => {
         type: 'phone', // Assuming all contacts are phone type
         order: apiContact.order || `WA-${Math.floor(Math.random() * 1000000)}`,
         resolvedBy: apiContact.resolvedBy || `agent_${Math.floor(Math.random() * 100)}`,
-        status: apiContact.status || (Math.random() > 0.5 ? 'Resolved' : 'Pending'),
+        status: apiContact.status || 'Pending',
         date: apiContact.date || new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }),
         attachments: apiContact.urls || [],
         customerIssue: apiContact.customerIssue || 'Issue not specified',
